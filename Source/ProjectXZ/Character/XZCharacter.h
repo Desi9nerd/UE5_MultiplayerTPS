@@ -1,16 +1,21 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GenericTeamAgentInterface.h"
 #include "XZCharacter.generated.h"
 
 class UXZInventoryComponent;
 struct FInputActionValue;
 class USpringArmComponent;
 class UXZPawnExtensionComponent;
+class UXZStatComponent;
+class UXZStateComponent;
 class UCameraComponent;
 class UXZWeaponComponent;
+class UTextRenderComponent;
 class UObject;
 struct FFrame;
+class UXZStateComponent;
 
 UENUM()
 enum class EXZCharacterType : uint8
@@ -19,60 +24,78 @@ enum class EXZCharacterType : uint8
 };
 
 UCLASS()
-class PROJECTXZ_API AXZCharacter : public ACharacter
+class PROJECTXZ_API AXZCharacter : public ACharacter, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
 public:
 	AXZCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-	virtual void BeginPlay() override;
 
-	FORCEINLINE TObjectPtr<UXZWeaponComponent> GetWeaponComponent() { return WeaponComponent; }
-	FORCEINLINE TObjectPtr<UXZInventoryComponent> GetInventoryComponent() { return InventoryComponent; }
+	FORCEINLINE TObjectPtr<UXZWeaponComponent> GetWeaponComponent() const { return WeaponComponent; }
+	FORCEINLINE TObjectPtr<UXZStateComponent> GetStateComponent() const { return StateComponent; }
+	FORCEINLINE TObjectPtr<UXZStatComponent> GetStatComponent() const { return StatComponent; }
+	FORCEINLINE TObjectPtr<UXZInventoryComponent> GetInventoryComponent() const { return InventoryComponent; }
+	FORCEINLINE TObjectPtr<USpringArmComponent> GetSpringArm() const { return CameraSpringArm; }
 	FORCEINLINE TObjectPtr<UCameraComponent> GetFollowCamera() const { return FollowCamera; }
 
+	void SetUpWidget(class AXZHUD* XZHUD);
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	virtual FGenericTeamId GetGenericTeamId() const override { return TeamID; }
+
 protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_Owner() override;
 	virtual void OnRep_PlayerState() override;
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
-protected:
 	void DisablePlayerInput();
 	void EnablePlayerInput();
 	void SetDead();
 	void EndDeadEvent();
-	// void UpdateRespawnTime();
 	void RespawnPlayer();
 	void ResetCharacterData();
 
 private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UXZPawnExtensionComponent> PawnExtComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UXZWeaponComponent> WeaponComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UXZStatComponent> StatComponent;
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UXZStatComponent> StatComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UXZStateComponent> StateComponent;
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UXZStateComponent> StateComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Character", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UXZInventoryComponent> InventoryComponent;
 
-	UPROPERTY(VisibleAnywhere, Category = Camera, Meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Camera", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraSpringArm;
 
-	UPROPERTY(VisibleAnywhere, Category = Camera, Meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Camera", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCameraComponent> FollowCamera;
 
 	UPROPERTY()
 	APlayerController* PlayerController;
 
-	float RemainingRespawnTime;
-	float RespawnTime;
 	FTimerHandle RespawnTimerHandle;
+
+	UPROPERTY(EditAnywhere, Category = "XZ|Team", Meta = ( AllowPrivateAccess = "true" ))
+	FGenericTeamId TeamID = 0;
+
+	//*****************************************************
+	//** TextRenderComponent
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Debugging", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UTextRenderComponent> TextRender_State;
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Debugging", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UTextRenderComponent> TextRender_Weapon;
+
+	FString CurrentCharacterState;
+	FString CurrentEquippedWeapon;
+	//*****************************************************
 };

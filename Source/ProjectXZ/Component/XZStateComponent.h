@@ -17,10 +17,12 @@ class PROJECTXZ_API UXZStateComponent : public UActorComponent
 
 public:	
 	UXZStateComponent();
-	void SetState(FGameplayTag NewState);
+	void SetState(const FGameplayTag& NewState);
 	FORCEINLINE FGameplayTag GetState() const { return CurrentState; }
+
 protected:
 	virtual void BeginPlay() override;
+	void InitializeComponent() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	UFUNCTION()
 	void OnRep_CurrentState();

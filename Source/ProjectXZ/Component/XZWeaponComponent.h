@@ -2,9 +2,11 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Components/ActorComponent.h"
+#include "Interface/ICombat.h"
 #include "ProjectXZ/GameplayTag/XZGameplayTags.h"
 #include "XZWeaponComponent.generated.h"
 
+class UXZCombatHandler;
 class UXZWeaponData;
 class UXZDA_Weapon;
 class AXZCharacter;
@@ -12,7 +14,7 @@ class AXZPlayerController;
 class AXZHUD;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class PROJECTXZ_API UXZWeaponComponent : public UActorComponent
+class PROJECTXZ_API UXZWeaponComponent : public UActorComponent, public IICombat
 {
 	GENERATED_BODY()
 
@@ -22,74 +24,82 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	TObjectPtr<AXZCharacter> GetXZCharacter();
 	TObjectPtr<AXZPlayerController> GetXZPlayerController();
-	TObjectPtr<AXZHUD> GetXZHUD();
+	const FGameplayTag& GetEquippedWeaponTag() { return EquippedWeaponTag; }
+	bool IsValidWeapon(const FGameplayTag& InTag);
 
-	// ¸í·É
+	void AddNewWeapon(const FGameplayTag& InTag);
+	UFUNCTION(Server, Reliable)
+	void Server_AddNewWeapon(const FGameplayTag& InTag);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_AddNewWeapon(const FGameplayTag& InTag);
+
 	void EquipWeapon(const FGameplayTag& InTag);
 	UFUNCTION(Server, Reliable)
 	void Server_EquipWeapon(const FGameplayTag& InTag);
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_EquipWeapon(const FGameplayTag& InTag);
 
+	void UnequipWeapon(const FGameplayTag& InTag);
+	UFUNCTION(Server, Reliable)
+	void Server_UnequipWeapon(const FGameplayTag& InTag);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_UnequipWeapon(const FGameplayTag& InTag);
+
 	void Fire();
 	UFUNCTION(Server, Reliable)
-	void Server_Fire(const FVector_NetQuantize& HitLocation);
+	void Server_Fire(const FVector_NetQuantize& HitLocation, const FTransform& SocketTransform);
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_Fire(const FGameplayTag& InTag, const FVector_NetQuantize& HitLocation);
+	void Multicast_Fire(const FVector_NetQuantize& HitLocation, const FTransform& SocketTransform);
 
 	void Reload(const FGameplayTag& InTag);
-	void StartAiming();
-	void EndAiming();
+	UFUNCTION(Server, Reliable)
+	void Server_Reload(const FGameplayTag& InTag, const FTransform& SocketTransform);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_Reload(const FGameplayTag& InTag, const FTransform& SocketTransform);
+
+	void Aiming(bool bAiming);
+	UFUNCTION(Server, Reliable)
+	void Server_Aiming(bool bAiming);
 
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
-	void SetHUDCrosshairs(float InDeltaTime);
-	void InterpFOV(float InDeltaTime);
+	void ShowCrosshair(const FGameplayTag& InTag, bool bShow);
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon Data", meta = (AllowPrivateAccess = true))
-	TMap<FGameplayTag, UXZDA_Weapon*> WeaponList; // ÀüÃ¼ ¹«±â ¸ñ·Ï(¿¡µğÅÍ¿¡¼­ µî·Ï)
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Weapon Data", meta = (AllowPrivateAccess = true))
+	TMap<FGameplayTag, UXZDA_Weapon*> WeaponList; // ì „ì²´ ë¬´ê¸° ëª©ë¡(ì—ë””í„°ì—ì„œ ë“±ë¡)
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon Data", meta = (AllowPrivateAccess = true))
-	TArray<FGameplayTag> Init_WeaponTags; // ½ÃÀÛ ½Ã °¡Áö°í ÀÖ´Â ¹«±â
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Weapon Data", meta = (AllowPrivateAccess = true))
+	TArray<FGameplayTag> Init_WeaponTags; // ì‹œì‘ ì‹œ ê°€ì§€ê³  ìˆëŠ” ë¬´ê¸°
 
 	UPROPERTY()
-	TMap<FGameplayTag, UXZWeaponData*> Datas; // ÇöÀç °¡Áö°í ÀÖ´Â ¹«±âµé µ¥ÀÌÅÍ
+	TMap<FGameplayTag, UXZWeaponData*> Datas; // í˜„ì¬ ê°€ì§€ê³  ìˆëŠ” ë¬´ê¸°ë“¤ ë°ì´í„°
 
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedChanged)
-	FGameplayTag EquippedWeaponTag = FXZTags::GetXZTags().Fist; // ÇöÀç ÀåÂø ÁßÀÎ ¹«±â
+	FGameplayTag EquippedWeaponTag = FXZTags::GetXZTags().Fist; // í˜„ì¬ ì¥ì°© ì¤‘ì¸ ë¬´ê¸°
 	UFUNCTION()
 	void OnRep_EquippedChanged();
 
 	TObjectPtr<AXZCharacter> OwnerCharacter;
-	FVector HitTarget; // ÃÑ¾ËÀÌ ¹ß»çµÇ¼­ Ãæµ¹ÇÏ°Ô µÉ ÁöÁ¡
-
-	//***************************************************************
-	//** Crosshairs
-	TObjectPtr<AXZHUD> XZHUD;
 	TObjectPtr<AXZPlayerController> XZPlayerController;
+	FVector HitTarget; // ì´ì•Œì´ ë°œì‚¬ë˜ì„œ ì¶©ëŒí•˜ê²Œ ë  ì§€ì 
 
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UTexture2D> CrosshairTexture2D;
-	//***************************************************************
 
 	//***************************************************************
 	//** Aiming
-	UPROPERTY(Replicated)
-	bool bIsAiming = false;
-
-	float CurrentFOV = 90.0f; // ÇöÀç FOV °ª
-	UPROPERTY(EditDefaultsOnly, Category = "Aiming Data", meta = (AllowPrivateAccess = true))
-	float ZoomedFOV = 30.0f;
-	UPROPERTY(EditDefaultsOnly, Category = "Aiming Data", meta = (AllowPrivateAccess = true))
-	float DefaultFOV = 90.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Aiming Data", meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Aiming Data", meta = (AllowPrivateAccess = true))
 	float AimWalkSpeed = 200.0f;
-	UPROPERTY(EditDefaultsOnly, Category = "Aiming Data", meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditDefaultsOnly, Category = "XZ|Aiming Data", meta = (AllowPrivateAccess = true))
 	float MaxWalkSpeed = 600.0f;
 	//***************************************************************
 
+
+public:
+	void Init();
+	virtual UXZCombatHandler* CreateCombatHandler() override;
+
+private:
+	UXZCombatHandler* CombatHandler;
 };

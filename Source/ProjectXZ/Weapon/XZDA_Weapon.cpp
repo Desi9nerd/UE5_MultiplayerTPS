@@ -1,7 +1,8 @@
 #include "XZDA_Weapon.h"
+#include "XZWeaponData.h"
 #include "Attachment/XZAttachment.h"
 #include "XZEquipment.h"
-#include "XZWeaponData.h"
+#include "Aim/XZAim.h"
 #include "Combat/XZCombat.h"
 #include "GameFramework/Character.h"
 
@@ -9,6 +10,8 @@ UXZDA_Weapon::UXZDA_Weapon()
 {
 	AttachmentClass = AXZAttachment::StaticClass();
 	EquipmentClass = UXZEquipment::StaticClass();
+	AimClass = UXZAim::StaticClass();
+	CombatClass = UXZCombat::StaticClass();
 }
 
 // 객체를 생성해서 리턴한다. 생성 리턴이기 때문에 이차 포인터를 사용
@@ -32,6 +35,13 @@ void UXZDA_Weapon::CreateInstance(ACharacter* InOwner, UXZWeaponData** OutWeapon
 		XZEquipment->Init(XZAttachment, InOwner, EquipmentData);
 	}
 
+	UXZAim* XZAim = nullptr;
+	if (IsValid(AimClass))
+	{
+		XZAim = NewObject<UXZAim>(this, AimClass);
+		XZAim->Init(XZAttachment, InOwner, AimData);
+	}
+
 	UXZCombat* XZCombat = nullptr;
 	if (IsValid(CombatClass))
 	{
@@ -42,6 +52,7 @@ void UXZDA_Weapon::CreateInstance(ACharacter* InOwner, UXZWeaponData** OutWeapon
 	*OutWeaponData = NewObject<UXZWeaponData>();
 	(*OutWeaponData)->Attachment = XZAttachment;
 	(*OutWeaponData)->Equipment = XZEquipment;
+	(*OutWeaponData)->Aim = XZAim;
 	(*OutWeaponData)->Combat = XZCombat;
 }
 

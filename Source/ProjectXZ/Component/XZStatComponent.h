@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Character/XZCharacter.h"
+#include "GameplayTagContainer.h"
 #include "XZStatComponent.generated.h"
 
 // Header 
@@ -47,7 +48,11 @@ public:
 	FORCEINLINE const FXZCharacterStat& GetCharacterStat() const { return CharacterStat; }
 	FORCEINLINE void SetCharacterStat(FXZCharacterStat InCharacterStat) { CharacterStat = InCharacterStat; }
 	FORCEINLINE float GetCurrentHp() const { return CurrentHp; }
+	// FORCEINLINE FGameplayTag GetTeamTag() const { return TeamTag; }
+	
 	float ApplyDamage(float InDamage);
+	void IncreaseHealth(float Amount);
+	void DecreaseHealth(float Amount);
 	void Reset();
 
 protected:
@@ -59,9 +64,8 @@ public:
 	FOnHpChangedDelegate OnHpChanged;
 	FOnStatChangedDelegate OnStatChanged;
 
-protected:
+private:
 	void SetHP(float NewHp);
-
 	UFUNCTION()
 	void OnRep_CurrentHp();
 
@@ -74,4 +78,8 @@ protected:
 
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_CharacterStat, VisibleInstanceOnly, Category = Stat, Meta = (AllowPrivateAccess = "true"))
 	FXZCharacterStat CharacterStat;
+
+// private:
+// 	FGameplayTag TeamTag;
+
 };

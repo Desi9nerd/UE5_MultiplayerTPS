@@ -30,6 +30,8 @@ public:
 	FGameplayTag InputTag_Move;
 	FGameplayTag InputTag_Look_Mouse;
 
+	FGameplayTag InputTag_PickupItem;
+
 	FGameplayTag InputTag_1;
 	FGameplayTag InputTag_2;
 	FGameplayTag InputTag_3;
@@ -54,6 +56,12 @@ public:
 	FGameplayTag StateTag_Alive_Equip_Fire;
 	FGameplayTag StateTag_Respawn;
 	FGameplayTag StateTag_Dead;
+
+	//********************************************************
+	// Game Team
+	FGameplayTag GameTeamTag_None;
+	FGameplayTag GameTeamTag_Red;
+	FGameplayTag GameTeamTag_Blue;
 
 
 	// Input ����: Pressed, Held, Released
